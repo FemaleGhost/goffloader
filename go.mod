@@ -1,4 +1,4 @@
-module github.com/FemaleGhost/goffloader
+module github.com/FemaleGhost/goffloader 
 
 go 1.22
 
