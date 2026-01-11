@@ -14,7 +14,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/praetorian-inc/goffloader/src/memory"
-	"golang.org/x/sys/windows"
 	"strconv"
 	"strings"
 	"unicode/utf16"
@@ -92,6 +91,9 @@ type DataParser struct {
 	size     uint32
 }
 
+// 全局变量用于保持内存引用，防止 GC 回收
+var dataExtractKeepAlive [][]byte
+
 func DataExtract(datap *DataParser, size *uint32) uintptr {
 	if datap.length <= 0 {
 		return 0
@@ -106,6 +108,10 @@ func DataExtract(datap *DataParser, size *uint32) uintptr {
 
 	out := make([]byte, binaryLength)
 	memory.CopyMemory(uintptr(unsafe.Pointer(&out[0])), datap.buffer, binaryLength)
+	
+	// 关键修复：保持引用防止 GC 回收
+	dataExtractKeepAlive = append(dataExtractKeepAlive, out)
+	
 	if uintptr(unsafe.Pointer(size)) != uintptr(0) && binaryLength != 0 {
 		*size = binaryLength
 	}
@@ -274,15 +280,14 @@ func PackShortString(s string) ([]byte, error) {
 }
 
 func PackString(s string) ([]byte, error) {
-	d, err := windows.UTF16FromString(s)
-	if err != nil {
-		return nil, err
-	}
+	// 修复：正确打包 ANSI 字符串
+	// Cobalt Strike BOF 期望的格式：[4字节长度][字符串字节+null终止符]
+	strBytes := []byte(s)
+	strBytes = append(strBytes, 0) // 添加 null 终止符
+	
 	buff := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buff, uint32(len(d)))
-	for _, c := range d {
-		buff = append(buff, byte(c))
-	}
+	binary.LittleEndian.PutUint32(buff, uint32(len(strBytes)))
+	buff = append(buff, strBytes...)
 	return buff, nil
 }
 
