@@ -9,8 +9,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/praetorian-inc/goffloader/src/coff"
-	"github.com/praetorian-inc/goffloader/src/lighthouse"
+	"github.com/FemaleGhost/goffloader/src/coff"
+	"github.com/FemaleGhost/goffloader/src/lighthouse"
 )
 
 func decompress(data []byte) ([]byte, error) {
