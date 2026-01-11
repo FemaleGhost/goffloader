@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/praetorian-inc/goffloader/src/lighthouse"
+	"github.com/FemaleGhost/goffloader/src/lighthouse"
 
 	"github.com/RIscRIpt/pecoff"
 	"github.com/RIscRIpt/pecoff/binutil"
