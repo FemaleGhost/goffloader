@@ -3,6 +3,7 @@ package coff
 import (
 	_ "embed"
 	"fmt"
+	"runtime"
 	"runtime/debug"
 	"strings"
 	"syscall"
@@ -338,16 +339,33 @@ func invokeMethod(methodName string, argBytes []byte, parsedCoff *pecoff.File, s
 		}
 	}()
 
+	// 锁定 OS 线程，防止 Go 调度器在 BOF 执行期间切换线程
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	// Call the entry point
 	for _, symbol := range parsedCoff.Symbols {
 		if symbol.NameString() == methodName {
 			mainSection := parsedCoff.Sections.Array()[symbol.SectionNumber-1]
 			entryPoint := sectionMap[mainSection.NameString()].Address + uintptr(symbol.Value)
 
+			// 确保 argBytes 有效
 			if len(argBytes) == 0 {
-				argBytes = make([]byte, 1)
+				argBytes = make([]byte, 4) // 最小 4 字节（长度字段）
+				argBytes[0] = 0
+				argBytes[1] = 0
+				argBytes[2] = 0
+				argBytes[3] = 0
 			}
+			
+			// 保持 argBytes 引用，防止 GC 在 syscall 期间回收
+			runtime.KeepAlive(argBytes)
+			
 			syscall.SyscallN(entryPoint, uintptr(unsafe.Pointer(&argBytes[0])), uintptr((len(argBytes))))
+			
+			// 再次保持引用
+			runtime.KeepAlive(argBytes)
 		}
 	}
 }
+
