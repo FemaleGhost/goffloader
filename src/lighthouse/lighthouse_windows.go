@@ -13,7 +13,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/praetorian-inc/goffloader/src/memory"
+	"github.com/FemaleGhost/goffloader/src/memory"
 	"strconv"
 	"strings"
 	"unicode/utf16"
