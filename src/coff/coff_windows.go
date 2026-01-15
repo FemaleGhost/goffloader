@@ -58,6 +58,8 @@ func resolveExternalAddress(symbolName string, outChannel chan<- interface{}) ui
 		if len(strings.Split(symbolName, "$")) == 2 {
 			libName = strings.Split(symbolName, "$")[0] + ".dll"
 			procName = strings.Split(symbolName, "$")[1]
+			// 添加调试输出，获取函数是否成功
+			//fmt.Printf("[DFR] Resolving: %s -> %s!%s\n", symbolName, libName, procName)
 		} else {
 			procName = symbolName
 
@@ -127,8 +129,17 @@ func resolveExternalAddress(symbolName string, outChannel chan<- interface{}) ui
 			}
 		}
 
-		libStringPtr, _ := syscall.LoadLibrary(libName)
-		procAddress, _ := syscall.GetProcAddress(libStringPtr, procName)
+		libStringPtr, err := syscall.LoadLibrary(libName)
+		if err != nil {
+			fmt.Printf("[ERROR] Failed to load library %s: %v\n", libName, err)
+			return 0
+		}
+		procAddress, err := syscall.GetProcAddress(libStringPtr, procName)
+		if err != nil {
+			fmt.Printf("[ERROR] Failed to get proc address %s from %s: %v\n", procName, libName, err)
+			return 0
+		}
+		//fmt.Printf("[OK] Resolved %s!%s -> 0x%x\n", libName, procName, procAddress)
 		return procAddress
 	}
 	return 0
