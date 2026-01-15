@@ -280,14 +280,17 @@ func PackShortString(s string) ([]byte, error) {
 }
 
 func PackString(s string) ([]byte, error) {
-	// 修复：正确打包 ANSI 字符串
-	// Cobalt Strike BOF 期望的格式：[4字节长度][字符串字节+null终止符]
-	strBytes := []byte(s)
-	strBytes = append(strBytes, 0) // 添加 null 终止符
-	
+	// 使用 windows.UTF16FromString 自动添加 null 终止符
+	d, err := windows.UTF16FromString(s)
+	if err != nil {
+		return nil, err
+	}
 	buff := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buff, uint32(len(strBytes)))
-	buff = append(buff, strBytes...)
+	binary.LittleEndian.PutUint32(buff, uint32(len(d)))
+	// 只取低字节（ANSI 字符串）
+	for _, c := range d {
+		buff = append(buff, byte(c))
+	}
 	return buff, nil
 }
 
@@ -302,9 +305,21 @@ func convertToWindowsUnicode(s string) []byte {
 }
 
 func PackWideString(s string) ([]byte, error) {
-	d := convertToWindowsUnicode(s)
+	// 使用 windows.UTF16FromString 自动添加 null 终止符
+	d, err := windows.UTF16FromString(s)
+	if err != nil {
+		return nil, err
+	}
+	
+	// 转换为字节数组（完整的 UTF16，每个字符 2 字节）
+	buf := make([]byte, len(d)*2)
+	for i, utf16Char := range d {
+		binary.LittleEndian.PutUint16(buf[i*2:], utf16Char)
+	}
+	
 	buff := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buff, uint32(len(d)))
-	buff = append(buff, d...)
+	binary.LittleEndian.PutUint32(buff, uint32(len(buf)))
+	buff = append(buff, buf...)
 	return buff, nil
 }
+
