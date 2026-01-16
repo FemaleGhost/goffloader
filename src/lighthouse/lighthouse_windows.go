@@ -14,6 +14,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/FemaleGhost/goffloader/src/memory"
+	"golang.org/x/sys/windows"
 	"strconv"
 	"strings"
 	"unicode/utf16"
